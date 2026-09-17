@@ -1,7 +1,7 @@
 use std::{ env, fs::create_dir, path::{Path, PathBuf} };
 use clap::Parser;
 use colored::Colorize;
-use polib::{message::Message, po_file};
+use polib::{message::Message, mo_file, po_file};
 
 mod csv_struct;
 use csv_struct::Ship;
@@ -86,11 +86,9 @@ fn main() {
         }
 
         po_file::write_to_file(&catalog, &out_path.join("updated.po")).unwrap();
+        mo_file::write(&catalog, &out_path.join("output_global.mo")).unwrap();
 
         println!("Completed.");
         return;
     }
-
-    let ships_arg = args.ships.unwrap_or("Nothing".to_string());
-    eprintln!("{}", ships_arg);
 }
