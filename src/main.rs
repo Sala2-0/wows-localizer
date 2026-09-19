@@ -4,7 +4,7 @@ use colored::Colorize;
 use polib::{message::Message, mo_file, po_file};
 
 mod csv_struct;
-use csv_struct::Ship;
+use csv_struct::{Ship, Text};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -12,7 +12,11 @@ struct Args {
 
     /// Replace ship names via a .csv template
     #[arg(long)]
-    ships: Option<String>
+    ships: Option<String>,
+
+    /// Translate in game text
+    #[arg(long)]
+    translate: Option<String>
 }
 
 /// Creates 'out' dir if it doesn't already exist.
@@ -88,7 +92,37 @@ fn main() {
         po_file::write_to_file(&catalog, &out_path.join("updated.po")).unwrap();
         mo_file::write(&catalog, &out_path.join("output_global.mo")).unwrap();
 
-        println!("Completed.");
-        return;
+        println!("Completed");
+    } else if args.translate.is_some() {
+        let str = args.translate.unwrap();
+        let path = Path::new(&str);
+        let mut translations_csv = csv::Reader::from_path(&path).expect("Failed to read .csv file");
+
+        for res in translations_csv.deserialize() {
+            let translation: Text = res.unwrap();
+
+            match translation.correct_struct() {
+                Err(why) => eprintln!("WARNING: {}", why),
+                Ok(()) => {
+                    println!("Replacing text from IDS '{}' with '{}'", translation.ids, translation.replacement);
+                    let ids = translation.ids;
+
+                    if catalog.find_message(None, &ids, None).is_none() {
+                        eprintln!("{}", format!("ERROR: No text found with IDS '{}'", ids).red().to_string());
+                        continue;
+                    }
+
+                    catalog.append_or_update(Message::build_singular()
+                        .with_msgid(ids)
+                        .with_msgstr(translation.replacement)
+                        .done());
+                }
+            }
+        }
+
+        po_file::write_to_file(&catalog, &out_path.join("updated.po")).unwrap();
+        mo_file::write(&catalog, &out_path.join("output_global.mo")).unwrap();
+
+        println!("Completed")
     }
 }

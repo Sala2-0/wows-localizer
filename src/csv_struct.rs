@@ -28,20 +28,27 @@ impl Ship {
 
         Ok(())
     }
+}
 
-    // fn has_ids(&self) -> ShipStructStatus {
-    //     if self.ids.is_empty() {
-    //         return ShipStructStatus::Invalid(format!("WARNING: No IDS found for entry '{}', skipping", self.original));
-    //     }
+#[derive(Debug, Deserialize)]
+pub struct Text {
+    #[serde(rename = "IDS")]
+    pub ids: String,
 
-    //     ShipStructStatus::Ok
-    // }
+    #[serde(rename = "REPLACEMENT")]
+    pub replacement: String
+}
 
-    // fn has_full_name(&self) -> ShipStructStatus {
-    //     if self.replacement_full.is_empty() {
-    //         return ShipStructStatus::Invalid(format!("WARNING: No replacement name found for entry '{}', skipping", self.original));
-    //     }
+impl Text {
+    pub fn correct_struct(&self) -> Result<(), String> {
+        if self.ids.trim().is_empty() {
+            return Err(format!("No IDS found for, skipping").yellow().to_string());
+        }
 
-    //     ShipStructStatus::Ok
-    // }
+        if self.replacement.trim().is_empty() {
+            return Err(format!("No replacement name found for IDS '{}', skipping", self.ids).yellow().to_string());
+        }
+
+        Ok(())
+    }
 }
