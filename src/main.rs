@@ -1,4 +1,4 @@
-use std::{ env, fs::create_dir, path::{Path, PathBuf} };
+use std::{ env, fs::{create_dir, create_dir_all}, path::{Path, PathBuf} };
 use clap::Parser;
 use colored::Colorize;
 use polib::{message::Message, mo_file, po_file};
@@ -16,7 +16,11 @@ struct Args {
 
     /// Translate in game text
     #[arg(long)]
-    translate: Option<String>
+    translate: Option<String>,
+
+    /// Build a structured, ready to plug in mod folder
+    #[arg(short, long)]
+    build: bool
 }
 
 /// Creates 'out' dir if it doesn't already exist.
@@ -43,6 +47,14 @@ fn create_out_dir() -> PathBuf {
 fn main() {
     let args = Args::parse();
     let out_path = create_out_dir();
+    let mod_out: Option<PathBuf> = match args.build {
+        false => None,
+        true => {
+            let path = out_path.join("texts/en/LC_MESSAGES");
+            create_dir_all(&path).unwrap();
+            Some(path)
+        }
+    };
 
     let po_path = Path::new(&args.po_path);
     if !po_path.exists() {
@@ -88,11 +100,6 @@ fn main() {
                 }
             }
         }
-
-        po_file::write_to_file(&catalog, &out_path.join("updated.po")).unwrap();
-        mo_file::write(&catalog, &out_path.join("output_global.mo")).unwrap();
-
-        println!("Completed");
     } else if args.translate.is_some() {
         let str = args.translate.unwrap();
         let path = Path::new(&str);
@@ -119,10 +126,14 @@ fn main() {
                 }
             }
         }
-
-        po_file::write_to_file(&catalog, &out_path.join("updated.po")).unwrap();
-        mo_file::write(&catalog, &out_path.join("output_global.mo")).unwrap();
-
-        println!("Completed")
     }
+
+    po_file::write_to_file(&catalog, &out_path.join("updated.po")).unwrap();
+    mo_file::write(&catalog, &out_path.join("output_global.mo")).unwrap();
+
+    if mod_out.is_some() {
+        mo_file::write(&catalog, &mod_out.unwrap().join("global.mo")).unwrap();
+    }
+
+    println!("Completed");
 }
